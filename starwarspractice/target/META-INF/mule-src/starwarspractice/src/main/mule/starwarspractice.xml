@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="fad46197-1677-47bf-babe-b2127117cb6b" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="bb89178e-3515-4d74-855b-8420b914654e" >
+		<http:request-connection host="swapi.dev" />
+	</http:request-config>
+	<flow name="get_all_characters" doc:id="41ac8913-08d2-490e-a70e-49883e85f7fb" >
+		<http:listener doc:name="Listener" doc:id="61a59659-8020-4fe9-abb1-1670a67be036" config-ref="HTTP_Listener_config" path="/characters"/>
+		<set-variable value="#[[]]" doc:name="Set Variable Characters" doc:id="656817ff-5481-4b03-b24e-017617745a7d" variableName="characters"/>
+		<http:request method="GET" doc:name="Request SWAPI" doc:id="f7eeea95-756b-4f0a-b2b8-de60cc568a29" config-ref="HTTP_Request_configuration" path="/api/people"/>
+		<set-variable value="#[payload.results]" doc:name="Update Variable Characters" doc:id="0e8c2a8c-60f5-4186-9feb-8c81cbe4cb3b" variableName="characters"/>
+		<set-variable value="#[payload.next]" doc:name="Set Variable NextURL" doc:id="73018952-3fb6-407f-aee9-9372631d4da0" variableName="nextURL"/>
+		<choice doc:name="Choice" doc:id="ea592541-ef9d-4a1c-adbc-5d7cc6dba8ae" >
+			<when expression="#[payload.next != null]">
+				<flow-ref doc:name="Flow Reference" doc:id="d01ef270-3a4e-4403-ac6a-5e9013c8be2c" name="get_characters_for_page"/>
+			</when>
+		</choice>
+		<ee:transform doc:name="Transform Message" doc:id="006d9961-9cc3-4dc0-81e9-85abf0dafd03" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv
+---
+vars.characters map ( character , indexOfCharacter ) -> {
+	name: character.name,
+	height: character.height,
+	mass: character.mass,
+	hair_color: character.hair_color,
+	skin_color: character.skin_color,
+	eye_color: character.eye_color,
+	birth_year: character.birth_year,
+	gender: character.gender
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="get_characters_by_gender" doc:id="1bac8657-b272-4701-a96c-a677ef7e5bb5" >
+		<http:listener doc:name="Listener" doc:id="a53df151-df4f-4964-8aec-1c6550fcd756" config-ref="HTTP_Listener_config" path="/charactersbygender"/>
+		<set-variable value="#[attributes.queryParams.gender]" doc:name="Set Gender Query Param" doc:id="b83cbe16-5dd9-47ac-ae7a-1455531bdfed" variableName="gender"/>
+		<set-variable value="#[[]]" doc:name="Set Variable Characters" doc:id="764b8de2-0d99-498e-9c6c-8929d5f12f3e" variableName="characters" />
+		<http:request method="GET" doc:name="Request SWAPI" doc:id="43a7625c-0158-44e7-954c-b71c0f4deda9" config-ref="HTTP_Request_configuration" path="/api/people" />
+		<set-variable value="#[payload.results]" doc:name="Update Variable Characters" doc:id="026c344c-0030-4259-bdec-a0bbd33e9823" variableName="characters" />
+		<set-variable value="#[payload.next]" doc:name="Set Variable NextURL" doc:id="4360b763-1927-4f7b-8794-f52999a2b5a1" variableName="nextURL" />
+		<choice doc:name="Choice" doc:id="b79ba668-8675-4960-ae4c-a415d3799c77" >
+			<when expression="#[payload.next != null]" >
+				<flow-ref doc:name="Flow Reference" doc:id="e2d9678c-c4f8-4cc8-bdff-b49240185993" name="get_characters_for_page" />
+			</when>
+		</choice>
+		<ee:transform doc:name="Transform Message" doc:id="3354ec33-3740-452c-8180-0a8a5601693f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv
+---
+vars.characters filter ($.gender == vars.gender) map ( character , indexOfCharacter ) -> {
+	name: character.name,
+	height: character.height,
+	mass: character.mass,
+	hair_color: character.hair_color,
+	skin_color: character.skin_color,
+	eye_color: character.eye_color,
+	birth_year: character.birth_year,
+	gender: character.gender
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="get_characters_for_page" doc:id="56c27fbb-f29e-4938-aa12-fe1c972cc266" >
+		<http:request method="GET" doc:name="Request Next URL" doc:id="47d815ed-0380-4623-9b24-02e29ba6429d" url="#[vars.nextURL]"/>
+		<set-variable value="#[vars.characters ++ payload.results]" doc:name="Update Variable Characters" doc:id="c34f6e3f-2352-44f8-9860-26db4fd0f35c" variableName="characters"/>
+		<set-variable value="#[payload.next]" doc:name="Update Variable Next URL" doc:id="96743782-f2e3-4c5d-9ac7-070cb344b6db" variableName="nextURL"/>
+		<choice doc:name="Choice" doc:id="758fb11f-611f-4b0b-ba6d-f09207c9a8c6" >
+			<when expression="#[payload.next != null]">
+				<flow-ref doc:name="Flow Reference" doc:id="46e8f394-05cc-48a6-9477-0fa896d718c7" name="get_characters_for_page"/>
+			</when>
+		</choice>
+	</flow>
+</mule>
