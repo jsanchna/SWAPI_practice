@@ -1,0 +1,93 @@
+#%RAML 1.0
+title: Star Wars Characters
+baseUri: https://swapi.dev/api/
+mediaType:
+  - application/json
+version: "1.0"
+protocols:
+  - HTTP
+  - HTTPS
+types:
+  Character:
+    properties:
+      name:
+        type: string
+      height:
+        type: string
+      mass:
+        type: string
+      hair_color:
+        type: string
+      skin_color:
+        type: string
+      eye_color:
+        type: string
+      birth_year:
+        type: string
+      gender:
+        type: string
+      homeworld:
+        type: string
+      films:
+        items:
+          type: string
+      species?:
+        items:
+          type: string
+      vehicles?:
+        items:
+          type: string
+      starships?:
+        items:
+          type: string
+      created:
+        type: string
+      edited:
+        type: string
+      url:
+        type: string
+  People:
+    properties:
+      count:
+        type: number
+        format: int
+      next?:
+        type: string
+      previous?:
+        type: string
+      result:
+        items:
+          type: Character
+  Error:
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+/people:
+  get:
+    responses:
+      "200":
+        body:
+          application/json:
+            type: People
+      "500":
+        body:
+          application/json:
+            type: Error
+      "400":
+        body:
+          application/json:
+            type: Error
+      "401":
+        body:
+          application/json:
+            type: Error
+      "403":
+        body:
+          application/json:
+            type: Error
+      "404":
+        body:
+          application/json:
+            type: Error
